@@ -4,11 +4,11 @@ import AuthForm from '../components/AuthForm/AuthForm'
 import Home from '../pages/Home'
 import ProductDetail from '../pages/ProductDetail'
 import AdminPage from '../pages/admins/AdminPage'
-import ProductFrom from '../pages/admins/ProductFrom'
+import LayoutAdmin from './../components/layouts/LayoutAdmin'
+import LayoutClient from './../components/layouts/LayoutClient'
 import NotFound from './../pages/NotFound'
 import PrivateRoutes from './PrivateRoutes'
-import LayoutClient from './../components/layouts/LayoutClient';
-import LayoutAdmin from './../components/layouts/LayoutAdmin';
+import ProductFrom from './../pages/admins/ProductFrom';
 
 const AppRoutes = ({props}) => {
   return (
@@ -21,9 +21,9 @@ const AppRoutes = ({props}) => {
       </Route> 
       {/* admin */}
       <Route path='/admin' element={<PrivateRoutes/>}>
-      <Route path='/admin' element={<LayoutAdmin/>}/>
+      <Route path='/admin' element={<LayoutAdmin/>}>
       <Route index element={<AdminPage/>}/>
-      <Route path='/admin/product-form' element={<ProductFrom/>}>
+      <Route path='/admin/product-form' element={<ProductFrom/>}/>
       <Route path='/admin/product-form/edit/:id' element={<ProductFrom/>}/>
       </Route>
       </Route>

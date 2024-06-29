@@ -1,27 +1,18 @@
 import './form.scss'
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom'
 import productSchema from './../../validations/productSchema';
 import instance from './../../apis/index';
 import Button from './../../components/Button/Button';
 import { ToastContainer, toast } from 'react-toastify';
+import { ProductContext } from '../../contexts/ProductContext';
 
 const ProductFrom = () => {
     const { id } = useParams();
     const nav = useNavigate()
-    const [products, setProducts] = useState([]);
-    useEffect(() => {
-        (async () => {
-            try {
-                const { data } = await instance.get("/products")
-                setProducts(data)
-            } catch (error) {
-                console.log(error)
-            }
-        })()
-    }, [])
+    const { dispatch } = useContext(ProductContext)
     const {
         register,
         handleSubmit,
@@ -40,23 +31,24 @@ const ProductFrom = () => {
                     console.log(error.message)
                 }
             })()
-        }, [])
+        }, [id ,reset])
     }
-    const onSubmitProduct = (data) => {
-        (async () => {
-            try {
-                if (data.id) {
-                    const res = await instance.patch(`products/${id}`, data)
+    const onSubmit = async (product) => {
+         try {
+                if (id) {
+                    await instance.put(`products/${id}`, product)
                     toast.success("Sửa sản phẩm thành công!");
+                    dispatch({type: "UPDATE_PRODUCT", payload: {id, product}})
                     // console.log(data);
-                    setProducts(res.data)
+                    // setProducts(res.data)
                     setTimeout(() => {
                         nav("/admin")
                     }, 2000)
                 } else {
-                    const res = await instance.post("/products", data);
+                    const { data } = await instance.post("/products", product);
                     toast.success("Thêm sản phẩm thành công!");
-                    setProducts([...products, res.data]);
+                    dispatch({type: "ADD_PRODUCT", payload:data})
+                    // setProducts([...products, res.data]);
                     // showSuccess();
                     setTimeout(() => {
                         nav("/admin");
@@ -65,15 +57,11 @@ const ProductFrom = () => {
             } catch (error) {
 
             }
-        })()
-    }
-
-    const onSubmit = (data) => {
-        onSubmitProduct({ ...data, id })
+        
     }
     return (
         <>
-            <form onSubmit={handleSubmit(onSubmit)}>
+            <form onSubmit={handleSubmit((data) => onSubmit({...data, id}))}>
                 <h1>{id ? "Product Edit" : "Product Add"}</h1>
                 <div className="mb-3 form-group">
                     <label htmlFor="title" className="form-label">Title</label>

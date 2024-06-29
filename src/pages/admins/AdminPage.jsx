@@ -1,55 +1,29 @@
-import React, { useEffect, useState } from 'react';
-import instance from '../../apis/index';
+import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
+import instance from '../../apis/index';
+import { ProductContext } from '../../contexts/ProductContext';
 
 const AdminPage = () => {
-  const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [search, setSearch] = useState('');
-
-  useEffect(() => {
-    const getAllProduct = async () => {
-      try {
-        const { data } = await instance.get("/products");
-        setProducts(data);
-        setFilteredProducts(data);
-      } catch (error) {
-        console.log(error);
-      }
-    };
-    getAllProduct();
-  }, []);
+  const { state, dispatch } = useContext(ProductContext)
 
   const handleDelProduct = (id) => {
     (async () => {
-      try {
-        const confirmValue = confirm("Bạn chắc chưa?");
-        if (confirmValue) {
+      if (window.confirm("Ban chac chan chua?")) {
+        try {
           await instance.delete(`/products/${id}`);
           toast.success("Xóa thành công");
-          setProducts(products.filter((item) => item.id !== id));
-          setFilteredProducts(filteredProducts.filter((item) => item.id !== id));
+          dispatch({ type: "DELETE_PRODUCT", payload: id })
+          
+          // setProducts(products.filter((item) => item.id !== id));
+        } catch (error) {
+          console.log(error);
         }
-      } catch (error) {
-        console.log(error);
       }
+
     })();
   };
 
-
-  useEffect(() => {
-    const filterProducts = () => {
-      const filtered = products.filter((product) => {
-        const matchesName = product.title.toLowerCase().includes(search.toLowerCase());
-        return matchesName ;
-      });
-      setFilteredProducts(filtered);
-    };
-
-    filterProducts();
-  }, [search, products]);
-  
   const onDel = (id) => {
     handleDelProduct(id);
   };
@@ -60,15 +34,6 @@ const AdminPage = () => {
         <Link className="btn btn-primary mb-3" to="/admin/product-form">
           Add new product
         </Link>
-        <div className="mb-3">
-          <input
-            type="text"
-            placeholder="Search by title"
-            value={search}
-            onChange={(t) => setSearch(t.target.value)}
-            className="form-control mb-2"
-          />
-        </div>
         <table className="table table-bordered">
           <thead className="thead-dark">
             <tr>
@@ -81,7 +46,7 @@ const AdminPage = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredProducts.map((item) => (
+            {state.products.map((item) => (
               <tr key={item.id}>
                 <td>{item.id}</td>
                 <td>
