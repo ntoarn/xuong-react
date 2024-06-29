@@ -8,11 +8,14 @@ import instance from './../../apis/index';
 import Button from './../../components/Button/Button';
 import { ToastContainer, toast } from 'react-toastify';
 import { ProductContext } from '../../contexts/ProductContext';
+const { VITE_CLOUD_NAME, VITE_UPLOAD_PRESET } = import.meta.env;
 
 const ProductFrom = () => {
     const { id } = useParams();
     const nav = useNavigate()
     const { dispatch } = useContext(ProductContext)
+    const [thumbnailUrl, setThumbnailUrl] = useState(null)
+    const [thumbnailOption, setThumbnailOption] = useState("keep")
     const {
         register,
         handleSubmit,
@@ -21,47 +24,69 @@ const ProductFrom = () => {
     } = useForm({
         resolver: zodResolver(productSchema)
     })
-    if (id) {
-        useEffect(() => {
+    useEffect(() => {
+        if (id) {
+
             (async () => {
                 try {
                     const { data } = await instance.get(`/products/${id}`)
                     reset(data)
+                    setThumbnailUrl(data.thumbnail)
                 } catch (error) {
                     console.log(error.message)
                 }
             })()
-        }, [id ,reset])
+        }
+    }, [id, reset])
+    const uploadImage = async (file) => {
+        const formData = new FormData();
+        formData.append("file", file)
+        formData.append("upload_preset", VITE_UPLOAD_PRESET)
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${VITE_CLOUD_NAME}/image/upload`, {
+            method: 'POST',
+            body: formData,
+        })
     }
-    const onSubmit = async (product) => {
-         try {
-                if (id) {
-                    await instance.put(`products/${id}`, product)
-                    toast.success("Sửa sản phẩm thành công!");
-                    dispatch({type: "UPDATE_PRODUCT", payload: {id, product}})
-                    // console.log(data);
-                    // setProducts(res.data)
-                    setTimeout(() => {
-                        nav("/admin")
-                    }, 2000)
-                } else {
-                    const { data } = await instance.post("/products", product);
-                    toast.success("Thêm sản phẩm thành công!");
-                    dispatch({type: "ADD_PRODUCT", payload:data})
-                    // setProducts([...products, res.data]);
-                    // showSuccess();
-                    setTimeout(() => {
-                        nav("/admin");
-                    }, 2000)
-                }
-            } catch (error) {
 
+    const onSubmit = async (product) => {
+        try {
+            let updateProduct = { ...product }
+            switch(thumbnailOption){
+                case "upload":
+                    if(product.thumbnail && product.thumbnail[0]){
+                        const thumbnailUrl = await uploadImage(product.thumbnail[0]);
+                        updateProduct= {...updateProduct, thumbnail: thumbnailUrl}
+                    }
+                    break;
+                    default:
             }
-        
+            if (id) {
+                await instance.patch(`products/${id}`, updateProduct)
+                toast.success("Sửa sản phẩm thành công!");
+                dispatch({ type: "UPDATE_PRODUCT", payload: { id, product: updateProduct } })
+                // console.log(data);
+                // setProducts(res.data)
+                setTimeout(() => {
+                    nav("/admin")
+                }, 2000)
+            } else {
+                const { data } = await instance.post("/products", updateProduct);
+                toast.success("Thêm sản phẩm thành công!");
+                dispatch({ type: "ADD_PRODUCT", payload: data })
+                // setProducts([...products, res.data]);
+                // showSuccess();
+                setTimeout(() => {
+                    nav("/admin");
+                }, 2000)
+            }
+        } catch (error) {
+
+        }
+
     }
     return (
         <>
-            <form onSubmit={handleSubmit((data) => onSubmit({...data, id}))}>
+            <form onSubmit={handleSubmit((data) => onSubmit({ ...data, id }))}>
                 <h1>{id ? "Product Edit" : "Product Add"}</h1>
                 <div className="mb-3 form-group">
                     <label htmlFor="title" className="form-label">Title</label>
@@ -84,7 +109,7 @@ const ProductFrom = () => {
                     />
                     {errors.description?.message && <p className='text-danger'>{errors.description?.message}</p>}
                 </div>
-                <div className="mb-3  form-group">
+                {/* <div className="mb-3  form-group">
                     <label htmlFor="thumbnail" className="form-label">Thumbnail</label>
                     <input
                         type="text"
@@ -93,7 +118,37 @@ const ProductFrom = () => {
                         {...register("thumbnail")}
                     />
                     {errors.thumbnail?.message && <p className="text-danger">{errors.thumbnail?.message}</p>}
+                </div> */}
+                <div className="mb-3 form-group">
+                    <label htmlFor="thumbnailOption" className="form-label">
+                        Chọn
+                    </label>
+                    <select className='form-control' value={thumbnailOption} 
+                    id="thumbnailOption" onChange={(e) => setThumbnailOption(e.target.value)}>
+                        <option value="keep">Giữ hình cũ</option>
+                        <option value="link">Dán link form Link</option>
+                        <option value="upload">Gửi tệp form</option>
+                    </select>
                 </div>
+                <div className="mb-3 form-group">
+                    <label htmlFor="thumbnail" className='form-label'>
+                        Thumbnail
+                    </label>
+                    {thumbnailOption === "link" && (
+                        <input type="text" className='form-control' id="thumbnail" 
+                        {...register("thumbail")}
+                        />
+                    )}
+                    {thumbnailOption === "upload" && (
+                        <input type="file" className='form-control' id='thumbnail' 
+                        {...register("thumbnail", {required:true})}
+                        />
+                    )}
+                    {errors.thumbnail?.message && <p className='text-danger'>{errors.thumbnail?.message}</p>}
+                </div>
+                {thumbnailUrl && (
+                    <img src={thumbnailUrl} alt="Product Thumbnail" style={{maxWidth:"200px", marginTop: "10px"}} />
+                )}
                 <div className="mb-3  form-group">
                     <label htmlFor="brand" className="form-label">Brand</label>
                     <input
